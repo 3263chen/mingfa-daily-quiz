@@ -24,6 +24,9 @@ button:disabled { opacity:.5; cursor:not-allowed; }
 .q-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
 .q-num { background:var(--main); color:#fff; border-radius:8px; padding:3px 10px; font-weight:bold; font-size:14px; }
 .q-day { color:var(--muted); font-size:13px; }
+.q-progress { color:var(--main); font-size:13px; font-weight:bold; }
+.pbar { height:6px; background:#eef0f6; border-radius:4px; overflow:hidden; margin-bottom:10px; }
+.pbar-fill { height:100%; background:var(--main); border-radius:4px; transition:width .2s; }
 .q-link { margin-left:auto; color:var(--main); font-size:13px; text-decoration:none; }
 .q-stem { font-size:16px; line-height:1.7; margin:10px 0 14px; white-space:pre-wrap; }
 .opt { display:block; width:100%; text-align:left; margin:8px 0; padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:#fafbfe; font-size:15px; line-height:1.6; cursor:pointer; }
@@ -171,9 +174,13 @@ function stats() {
 function renderQuestion(q) {
   var s = P[q.num] || {};
   var opts = q.options.length ? q.options : [{k:'A',t:'正确'},{k:'B',t:'错误'}];
+  var inRound = current.length > 1;
+  var pct = inRound ? Math.round(cursor / current.length * 100) : 0;
   var html = '<div class="card">' +
+    (inRound ? '<div class="pbar"><div class="pbar-fill" style="width:' + pct + '%"></div></div>' : '') +
     '<div class="q-head"><span class="q-num">第 ' + q.num + ' 题</span>' +
     '<span class="q-day">' + fmtDate(q.day) + '</span>' +
+    (inRound ? '<span class="q-progress">本轮 ' + (cursor + 1) + ' / ' + current.length + '</span>' : '') +
     (q.link ? '<a class="q-link" href="' + q.link + '" target="_blank">查看原帖 ↗</a>' : '') + '</div>' +
     '<div class="q-stem">' + esc(q.stem) + '</div>';
   opts.forEach(function(o, i){
@@ -293,9 +300,13 @@ function fmtTime(t) {
 function viewQuestion(q, backFn) {
   var s = P[q.num] || {};
   var opts = q.options.length ? q.options : [{k:'A',t:'正确'},{k:'B',t:'错误'}];
+  var inRound = current.length > 1;
+  var pct = inRound ? Math.round(cursor / current.length * 100) : 0;
   var html = '<div class="card">' +
+    (inRound ? '<div class="pbar"><div class="pbar-fill" style="width:' + pct + '%"></div></div>' : '') +
     '<div class="q-head"><span class="q-num">第 ' + q.num + ' 题</span>' +
     '<span class="q-day">' + fmtDate(q.day) + '</span>' +
+    (inRound ? '<span class="q-progress">本轮 ' + (cursor + 1) + ' / ' + current.length + '</span>' : '') +
     (q.link ? '<a class="q-link" href="' + q.link + '" target="_blank">查看原帖 ↗</a>' : '') + '</div>' +
     '<div class="q-stem">' + esc(q.stem) + '</div>';
   opts.forEach(function(o, i){
