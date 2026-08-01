@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
@@ -57,6 +57,8 @@ aside h3:first-child { margin-top:0; }
 .side-book-btn:hover { background:var(--main); color:#fff; opacity:.9; }
 @media (max-width:760px) { .layout { flex-direction:column; } aside { width:100%; } }
 .foot { text-align:center; color:var(--muted); font-size:12px; margin:20px 0; }
+.sync-line { font-size:12px; color:var(--muted); margin:-2px 0 10px; }
+.sync-line .ok { color:var(--ok); } .sync-line .no { color:var(--warn); }
 </style>
 </head>
 <body>
@@ -73,6 +75,7 @@ aside h3:first-child { margin-top:0; }
         <div class="sub" id="srcLine"></div>
       </header>
       <div id="stats"></div>
+      <div id="syncLine" class="sync-line"></div>
       <div class="toolbar">
         <button id="drawBtn" class="primary">抽 1 题</button>
         <button id="redoBtn">抽十题</button>
@@ -382,6 +385,78 @@ document.getElementById('resetBtn').onclick = function(){
 };
 document.getElementById('srcLine').textContent = '数据来源：@' + DATA.author + ' ｜ 更新：' + DATA.generated + ' ｜ 共 ' + DATA.questions.length + ' 题';
 stats();
+/* ---- online sync: merge latest questions from public mirror ---- */
+var SYNC_URLS = [
+  'https://cdn.jsdelivr.net/gh/3263chen/mingfa-daily-quiz@main/quiz-data.json',
+  'https://3263chen.github.io/mingfa-daily-quiz/quiz-data.json'
+];
+var SYNC_KEY = 'wbq-sync-v1';
+function setSyncLine(html, cls) {
+  var el = document.getElementById('syncLine');
+  if (el) el.innerHTML = '<span class="' + (cls || '') + '">' + html + '</span>';
+}
+function sanitizeRemote(j) {
+  if (!j || !Array.isArray(j.questions) || !j.questions.length) return null;
+  var qs = j.questions.filter(function(q){ return q && typeof q.num === 'number' && q.stem; });
+  qs.forEach(function(q){ if (q.link && !/^https?:\/\//.test(q.link)) q.link = ''; });
+  if (!qs.length) return null;
+  return { author: j.author || '', generated: j.generated || '', questions: qs };
+}
+function mergeInto(local, remote) {
+  var byNum = {};
+  (local.questions || []).forEach(function(q){ byNum[q.num] = q; });
+  remote.questions.forEach(function(q){ if (!byNum[q.num]) byNum[q.num] = q; });
+  var qs = Object.keys(byNum).map(function(k){ return byNum[k]; }).sort(function(a,b){ return a.num - b.num; });
+  return { author: remote.author || local.author, generated: remote.generated || local.generated, questions: qs };
+}
+function refreshInfo() {
+  document.getElementById('srcLine').textContent = '数据来源：@' + DATA.author + ' ｜ 更新：' + DATA.generated + ' ｜ 共 ' + DATA.questions.length + ' 题';
+  stats();
+  updateWrongBookCount();
+}
+function fetchJson(url, ms) {
+  return new Promise(function(resolve){
+    var done = false;
+    var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    var timer = setTimeout(function(){ try { if (ctrl) ctrl.abort(); } catch (e) {} finish(null); }, ms || 8000);
+    function finish(v){ if (!done) { done = true; clearTimeout(timer); resolve(v); } }
+    fetch(url, ctrl ? { signal: ctrl.signal } : {}).then(function(r){ return r.ok ? r.json() : null; })
+      .then(finish).catch(function(){ finish(null); });
+  });
+}
+function restoreSynced() {
+  try {
+    var s = JSON.parse(localStorage.getItem(SYNC_KEY));
+    var r = sanitizeRemote(s);
+    if (r && r.questions.length > DATA.questions.length) {
+      DATA = mergeInto(DATA, r);
+      refreshInfo();
+    }
+  } catch (e) {}
+}
+function syncOnline() {
+  setSyncLine('在线同步中…');
+  (function attempt(i){
+    if (i >= SYNC_URLS.length) { setSyncLine('⚠️ 在线同步失败，当前为离线题库', 'no'); return; }
+    fetchJson(SYNC_URLS[i]).then(function(j){
+      var r = sanitizeRemote(j);
+      if (r) {
+        var before = DATA.questions.length;
+        DATA = mergeInto(DATA, r);
+        try { localStorage.setItem(SYNC_KEY, JSON.stringify(DATA)); } catch (e) {}
+        var added = DATA.questions.length - before;
+        setSyncLine(added > 0
+          ? '✅ 已自动更新：新增 ' + added + ' 题，题库共 ' + DATA.questions.length + ' 题（' + r.generated + '）'
+          : '✅ 已是最新：共 ' + DATA.questions.length + ' 题（' + r.generated + '）', 'ok');
+        refreshInfo();
+      } else {
+        attempt(i + 1);
+      }
+    });
+  })(0);
+}
+restoreSynced();
+syncOnline();
 updateWrongBookCount();
 renderHistory();
 startDraw('normal', 1);
