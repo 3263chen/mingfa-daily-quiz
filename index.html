@@ -619,7 +619,8 @@ function mergeInto(local, remote) {
   (local.questions || []).forEach(function(q){ byNum[q.num] = q; });
   remote.questions.forEach(function(q){ if (!byNum[q.num]) byNum[q.num] = q; });
   var qs = Object.keys(byNum).map(function(k){ return byNum[k]; }).sort(function(a,b){ return a.num - b.num; });
-  return { author: remote.author || local.author, generated: remote.generated || local.generated, questions: qs };
+  var gen = (remote.generated || '').slice(0, 10) >= (local.generated || '').slice(0, 10) ? remote.generated : local.generated;
+  return { author: remote.author || local.author, generated: gen || local.generated, questions: qs };
 }
 function refreshInfo() {
   document.getElementById('srcLine').textContent = '数据来源：@' + DATA.author + ' ｜ 更新：' + DATA.generated + ' ｜ 共 ' + DATA.questions.length + ' 题';
