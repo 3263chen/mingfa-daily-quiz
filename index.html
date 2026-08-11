@@ -659,8 +659,8 @@ function syncOnline() {
         try { localStorage.setItem(SYNC_KEY, JSON.stringify(DATA)); } catch (e) {}
         var added = DATA.questions.length - before;
         setSyncLine(added > 0
-          ? '✅ 已自动更新：新增 ' + added + ' 题，题库共 ' + DATA.questions.length + ' 题（' + r.generated + '）'
-          : '✅ 已是最新：共 ' + DATA.questions.length + ' 题（' + r.generated + '）', 'ok');
+          ? '✅ 已自动更新：新增 ' + added + ' 题，题库共 ' + DATA.questions.length + ' 题（' + DATA.generated + '）'
+          : '✅ 已是最新：共 ' + DATA.questions.length + ' 题（' + DATA.generated + '）', 'ok');
         refreshInfo();
       } else {
         attempt(i + 1);
