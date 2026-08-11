@@ -552,9 +552,12 @@ function renderHistoryDetail(idx) {
 /* ---- 模块切换 ---- */
 function applyModuleUI() {
   var m = curMod();
-  document.getElementById('modTitle').textContent = '每日一题刷题 · ' + m.name;
-  document.getElementById('introGag').textContent = m.gag;
-  document.getElementById('authorAvatar').src = m.avatar;
+  var titleEl = document.getElementById('modTitle');
+  if (titleEl) titleEl.textContent = '每日一题刷题 · ' + m.name;
+  var gagEl = document.getElementById('introGag');
+  if (gagEl) gagEl.textContent = m.gag;
+  var avEl = document.getElementById('authorAvatar');
+  if (avEl) avEl.src = m.avatar;
   var tabs = document.querySelectorAll('.mod-tab');
   Array.prototype.forEach.call(tabs, function(b){
     b.classList.toggle('active', b.getAttribute('data-mod') === CUR_MOD);
@@ -565,20 +568,24 @@ function switchModule(key) {
   if (!MODULES[key] || key === CUR_MOD) return;
   CUR_MOD = key;
   try { localStorage.setItem('wbq-module', key); } catch (e) {}
-  DATA = curMod().data;
-  PROGRESS_KEY = 'wbq-' + key + '-progress-v1';
-  HISTORY_KEY = 'wbq-' + key + '-history-v1';
-  SYNC_KEY = 'wbq-' + key + '-sync-v1';
-  SYNC_URLS = curMod().syncUrls;
-  P = loadProgress();
-  HIST = loadHistory();
-  current = []; cursor = 0; roundResult = []; roundLogged = false;
-  applyModuleUI();
-  refreshInfo();
-  renderHistory();
-  updateWrongBookCount();
-  startDraw('normal', 1);
-  syncOnline();
+  try {
+    DATA = curMod().data;
+    PROGRESS_KEY = 'wbq-' + key + '-progress-v1';
+    HISTORY_KEY = 'wbq-' + key + '-history-v1';
+    SYNC_KEY = 'wbq-' + key + '-sync-v1';
+    SYNC_URLS = curMod().syncUrls;
+    P = loadProgress();
+    HIST = loadHistory();
+    current = []; cursor = 0; roundResult = []; roundLogged = false;
+    applyModuleUI();
+    refreshInfo();
+    renderHistory();
+    updateWrongBookCount();
+    startDraw('normal', 1);
+    syncOnline();
+  } catch (err) {
+    location.reload(); // 切换已完成保存，刷新后即为正确模块
+  }
 }
 Array.prototype.forEach.call(document.querySelectorAll('.mod-tab'), function(b){
   b.onclick = function(){ switchModule(b.getAttribute('data-mod')); };
